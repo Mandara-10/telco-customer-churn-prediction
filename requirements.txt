@@ -10,3 +10,4 @@ shap>=0.42.0
 plotly>=5.17.0
 jupyter>=1.0.0
 ipykernel>=6.26.0
+xgboost
