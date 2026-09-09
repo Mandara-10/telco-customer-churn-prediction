@@ -1,66 +1,135 @@
-# Customer Churn Prediction
+# Telco Customer Churn Prediction - Production Microservices Architecture
 
-A reproducible project for exploratory data analysis, preprocessing, and baseline modelling to predict customer churn for a telecommunications dataset.
+This repository contains a complete, production-ready Telco Customer Churn Prediction application decoupled into two distinct microservices:
+1. **Flask REST API Backend (`backend/`)**: Serves model inference, preprocessing, validation rules, feature metadata, and SHAP explanations.
+2. **Streamlit Frontend (`frontend/`)**: Pure presentation layer built dynamically via backend REST API calls with no direct model/SHAP dependencies.
 
-## Project Overview
+---
 
-This repository contains a data science workflow that explores the Telco Customer Churn dataset, performs EDA and preprocessing, and builds baseline classification models to predict whether a customer will churn.
+## 🌟 Key Features
 
-## Dataset
+- **Decoupled Architecture**: Clean separation between Flask API backend and Streamlit UI frontend.
+- **Optimized DNN Model**: Keras Deep Neural Network trained with Dropout (0.5), Batch Normalization, and Adam optimizer (`lr=3e-4`).
+- **Custom Classification Threshold**: Optimal threshold of `0.45` tuned for high recall on churn detection.
+- **Local & Global SHAP Explainability**: Detailed feature attributions for individual predictions and global model insights.
+- **Batch CSV Processing**: Upload CSV files for batch scoring with inline validation error highlighting and CSV exports.
+- **Dynamic Form Generation**: Frontend dynamically constructs input controls from `GET /api/features`.
 
-- Source file: `data/WA_Fn-UseC_-Telco-Customer-Churn.csv`
-- Summary: customer demographic, account, and service usage features with a `Churn` target column.
+---
 
-## Repository Structure
+## 📊 Dataset & Model Performance
 
-- `data/` — raw dataset CSV.
-- `notebooks/` — Jupyter notebooks that implement the analysis and modelling pipeline:
-	- [notebooks/01_Data_Understanding.ipynb](notebooks/01_Data_Understanding.ipynb)
-	- [notebooks/02_EDA.ipynb](notebooks/02_EDA.ipynb)
-	- [notebooks/03_Preprocessing.ipynb](notebooks/03_Preprocessing.ipynb)
-	- [notebooks/04_Baseline_Models.ipynb](notebooks/04_Baseline_Models.ipynb)
-	- [notebooks/05_DNN_Model_Proper.ipynb](notebooks/05_DNN_Model_Proper.ipynb)
-	- [notebooks/06_DNN_Optimization.ipynb](notebooks/06_DNN_Optimization.ipynb)
-- `models/` — trained model artifacts and saved preprocessing pipelines.
-- `reports/` — generated experiment results, final comparisons, and model metadata.
-- `requirements.txt` — Python dependencies.
+### Dataset Overview
+- **Source**: Telecom Customer Churn dataset (`WA_Fn-UseC_-Telco-Customer-Churn.csv`)
+- **Total Records**: 7,043 rows (19 feature columns + Churn target)
 
-## Getting Started
+### Model Test Metrics (Threshold = 0.45)
 
-Prerequisites: Python 3.8+ recommended.
+| Metric | Score |
+|--------|-------|
+| **Accuracy** | 0.7821 |
+| **Precision** | 0.5781 |
+| **Recall** | 0.6631 |
+| **F1-Score** | 0.6177 |
+| **ROC-AUC** | 0.8397 |
 
-1. Create and activate a virtual environment:
+### Model Benchmark Comparison
 
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+| Model | Accuracy | Precision | Recall | F1-Score | ROC-AUC |
+|-------|----------|-----------|--------|----------|---------|
+| Logistic Regression | 0.8055 | 0.6572 | 0.5588 | 0.6040 | 0.8420 |
+| Decision Tree | 0.7942 | 0.6296 | 0.5455 | 0.5845 | 0.8284 |
+| Random Forest | 0.7892 | 0.6305 | 0.4973 | 0.5561 | 0.8226 |
+| **Optimized DNN (O10-BatchNorm)** | **0.7821** | **0.5781** | **0.6631** | **0.6177** | **0.8397** |
+
+---
+
+## 📂 Clean Project Structure
+
+```
+telco-customer-churn-prediction/
+├── backend/
+│   ├── app.py                      # Flask REST API app factory & endpoints
+│   ├── config.py                   # System & path configurations, threshold (0.45)
+│   ├── requirements.txt            # Backend dependencies
+│   ├── models/                     # Trained .keras model & fitted .joblib preprocessor
+│   │   ├── churn_dnn_optimized.keras
+│   │   └── preprocessor_optimized.joblib
+│   ├── utils/
+│   │   ├── feature_mapping.py      # Single source of truth for 19 features
+│   │   ├── validation.py           # Payload & batch CSV validation logic
+│   │   └── prediction.py           # ChurnPredictor singleton class
+│   └── explainability/
+│       ├── shap_explainer.py       # ChurnExplainer class (Deep/Kernel fallbacks)
+│       └── shap_background.joblib  # Auto-generated background dataset artifact
+│
+├── frontend/
+│   ├── streamlit_app.py            # Streamlit UI (Single Predict, Batch CSV, Insights)
+│   ├── api_client.py               # REST API HTTP wrapper client
+│   └── requirements.txt            # Frontend dependencies
+│
+├── data/
+│   └── WA_Fn-UseC_-Telco-Customer-Churn.csv
+│
+├── models/
+│   ├── churn_dnn_optimized.keras
+│   └── preprocessor_optimized.joblib
+│
+├── notebooks/
+│   ├── 01_Data_Understanding.ipynb
+│   ├── 02_EDA.ipynb
+│   ├── 03_Preprocessing.ipynb
+│   ├── 04_Baseline_Models.ipynb
+│   ├── 05_DNN_Model_Proper.ipynb
+│   └── 06_DNN_Optimization.ipynb
+│
+├── reports/
+│   └── ...
+│
+└── README.md
 ```
 
-2. Install dependencies:
+---
 
-```powershell
-pip install -r requirements.txt
+## 🚀 How to Run the Application
+
+### 1. Start the Flask Backend API (Port 5000)
+
+Open a terminal in the project root directory and run:
+
+```bash
+# Set PYTHONPATH to project root
+$env:PYTHONPATH="."  # Windows PowerShell
+# export PYTHONPATH="."  # Linux / macOS
+
+python -m backend.app
 ```
 
-3. Launch Jupyter Lab / Notebook and run the notebooks in order (01 → 04):
+The Flask server will start listening at `http://localhost:5000` and load model singletons into memory.
 
-```powershell
-jupyter lab
+### 2. Start the Streamlit UI Frontend (Port 8501)
+
+Open a second terminal in the project root directory and run:
+
+```bash
+# Set BACKEND_URL (optional, defaults to http://localhost:5000)
+$env:BACKEND_URL="http://localhost:5000"
+
+streamlit run frontend/streamlit_app.py --server.port 8501
 ```
 
-## Reproducible Workflow
+Access the user interface at `http://localhost:8501`.
 
-Follow the notebooks in sequence:
+---
 
-- `01_Data_Understanding.ipynb`: data loading and sanity checks.
-- `02_EDA.ipynb`: exploratory analysis and visualizations.
-- `03_Preprocessing.ipynb`: data cleaning, feature engineering, and pipelines.
-- `04_Baseline_Models.ipynb`: train/evaluate baseline classifiers and compare metrics such as accuracy, precision, recall, and ROC AUC.
-- `05_DNN_Model_Proper.ipynb`: implement the proper DNN training pipeline, select the best DNN, and compare it to baseline models.
-- `06_DNN_Optimization.ipynb`: tune and optimize DNN hyperparameters with validation experiments.
+## 🔌 API Endpoints Summary
 
-To persist trained models, export them from the final notebook into the `models/` directory.
-
-
-
-
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| `GET` | `/api/health` | Liveness and readiness health check |
+| `GET` | `/api/features` | Feature metadata for dynamic UI form generation |
+| `POST` | `/api/predict` | Single customer prediction payload -> probability & prediction |
+| `POST` | `/api/predict/explain` | Single customer prediction payload -> prediction + SHAP explanation |
+| `POST` | `/api/predict/batch` | Multipart CSV upload -> predictions CSV/JSON output |
+| `POST` | `/api/explain/batch-row` | Batch customer row -> SHAP explanation for specific row |
+| `GET` | `/api/model/insights` | Metrics table, model comparison table, global SHAP importance, and limitations |
